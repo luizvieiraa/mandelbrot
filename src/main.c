@@ -4,7 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static int converter_inteiro_positivo(const char *texto, int *resultado)
+#include "mandelbrot.h"
+
+static int converter_inteiro_positivo(
+    const char *texto,
+    int *resultado
+)
 {
     char *fim;
     long valor;
@@ -31,6 +36,8 @@ int main(int argc, char *argv[])
     int altura;
     int max_iteracoes;
     int num_threads;
+    size_t total_pixels;
+    int *imagem;
 
     if (argc != 5) {
         fprintf(
@@ -43,16 +50,25 @@ int main(int argc, char *argv[])
     }
 
     if (!converter_inteiro_positivo(argv[1], &largura)) {
-        fprintf(stderr, "Erro: largura deve ser um inteiro positivo.\n");
+        fprintf(
+            stderr,
+            "Erro: largura deve ser um inteiro positivo.\n"
+        );
         return EXIT_FAILURE;
     }
 
     if (!converter_inteiro_positivo(argv[2], &altura)) {
-        fprintf(stderr, "Erro: altura deve ser um inteiro positivo.\n");
+        fprintf(
+            stderr,
+            "Erro: altura deve ser um inteiro positivo.\n"
+        );
         return EXIT_FAILURE;
     }
 
-    if (!converter_inteiro_positivo(argv[3], &max_iteracoes)) {
+    if (!converter_inteiro_positivo(
+        argv[3],
+        &max_iteracoes
+    )) {
         fprintf(
             stderr,
             "Erro: max_iteracoes deve ser um inteiro positivo.\n"
@@ -69,13 +85,46 @@ int main(int argc, char *argv[])
     }
 
     if ((size_t)largura > SIZE_MAX / (size_t)altura) {
-        fprintf(stderr, "Erro: dimensoes da imagem sao muito grandes.\n");
+        fprintf(
+            stderr,
+            "Erro: dimensoes da imagem sao muito grandes.\n"
+        );
         return EXIT_FAILURE;
     }
 
-    /*
-     * A execução das quatro implementações será adicionada
-     * nas próximas etapas.
-     */
+    total_pixels = (size_t)largura * (size_t)altura;
+
+    if (total_pixels > SIZE_MAX / sizeof(*imagem)) {
+        fprintf(
+            stderr,
+            "Erro: imagem excede o limite de memoria.\n"
+        );
+        return EXIT_FAILURE;
+    }
+
+    imagem = malloc(total_pixels * sizeof(*imagem));
+
+    if (imagem == NULL) {
+        fprintf(
+            stderr,
+            "Erro: falha na alocacao de memoria.\n"
+        );
+        return EXIT_FAILURE;
+    }
+
+    calcular_serial(
+        imagem,
+        largura,
+        altura,
+        max_iteracoes
+    );
+
+    normalizar_imagem(
+        imagem,
+        total_pixels,
+        max_iteracoes
+    );
+
+    free(imagem);
     return EXIT_SUCCESS;
 }

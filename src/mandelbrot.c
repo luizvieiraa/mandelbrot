@@ -64,3 +64,36 @@ int calcular_pixel(
         max_iteracoes
     );
 }
+
+int normalizar_intensidade(
+    int iteracoes,
+    int max_iteracoes
+)
+{
+    if (iteracoes <= 0) {
+        return 0;
+    }
+
+    if (iteracoes >= max_iteracoes) {
+        return 255;
+    }
+
+    return (int)(
+        ((long long)iteracoes * 255LL)
+        / (long long)max_iteracoes
+    );
+}
+
+void normalizar_imagem(
+    int *imagem,
+    size_t total_pixels,
+    int max_iteracoes
+)
+{
+    for (size_t indice = 0; indice < total_pixels; indice++) {
+        imagem[indice] = normalizar_intensidade(
+            imagem[indice],
+            max_iteracoes
+        );
+    }
+}
