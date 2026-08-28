@@ -125,6 +125,20 @@ int main(int argc, char *argv[])
         max_iteracoes
     );
 
+    calcular_openmp(
+        imagem,
+        largura,
+        altura,
+        max_iteracoes,
+        num_threads
+    );
+
+    normalizar_imagem(
+        imagem,
+        total_pixels,
+        max_iteracoes
+    );
+
     free(imagem);
     return EXIT_SUCCESS;
 }

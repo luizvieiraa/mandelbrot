@@ -35,4 +35,12 @@ void normalizar_imagem(
     int max_iteracoes
 );
 
+void calcular_openmp(
+    int *imagem,
+    int largura,
+    int altura,
+    int max_iteracoes,
+    int num_threads
+);
+
 #endif

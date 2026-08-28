@@ -1,4 +1,5 @@
 #include "mandelbrot.h"
+#include <omp.h>
 
 #define REAL_MINIMO (-2.0)
 #define REAL_MAXIMO 1.0
@@ -65,6 +66,28 @@ int calcular_pixel(
     );
 }
 
+void calcular_serial(
+    int *imagem,
+    int largura,
+    int altura,
+    int max_iteracoes
+)
+{
+    for (int linha = 0; linha < altura; linha++) {
+        for (int coluna = 0; coluna < largura; coluna++) {
+            int indice = linha * largura + coluna;
+
+            imagem[indice] = calcular_pixel(
+                coluna,
+                linha,
+                largura,
+                altura,
+                max_iteracoes
+            );
+        }
+    }
+}
+
 int normalizar_intensidade(
     int iteracoes,
     int max_iteracoes
@@ -95,5 +118,32 @@ void normalizar_imagem(
             imagem[indice],
             max_iteracoes
         );
+    }
+}
+
+void calcular_openmp(
+    int *imagem,
+    int largura,
+    int altura,
+    int max_iteracoes,
+    int num_threads
+)
+{
+    #pragma omp parallel for \
+        schedule(static) \
+        num_threads(num_threads)
+
+    for (int linha = 0; linha < altura; linha++) {
+        for (int coluna = 0; coluna < largura; coluna++) {
+            int indice = linha * largura + coluna;
+
+            imagem[indice] = calcular_pixel(
+                coluna,
+                linha,
+                largura,
+                altura,
+                max_iteracoes
+            );
+        }
     }
 }
