@@ -18,6 +18,15 @@ typedef struct {
     int linha_final;
 } ArgumentosPthreads1;
 
+typedef struct {
+    int *imagem;
+    int largura;
+    int altura;
+    int max_iteracoes;
+    int id_thread;
+    int num_threads;
+} ArgumentosPthreads2;
+
 int calcular_iteracoes_ponto(
     double real,
     double imaginario,
@@ -232,6 +241,97 @@ int calcular_pthreads1(
                 &threads[i],
                 NULL,
                 executar_bloco_pthreads1,
+                &argumentos[i]
+            ) != 0
+        ) {
+            ocorreu_erro = 1;
+            break;
+        }
+
+        threads_criadas++;
+    }
+
+    for (int i = 0; i < threads_criadas; i++) {
+        if (pthread_join(threads[i], NULL) != 0) {
+            ocorreu_erro = 1;
+        }
+    }
+
+    free(threads);
+    free(argumentos);
+
+    return !ocorreu_erro;
+}
+
+static void *executar_ciclico_pthreads2(void *dados)
+{
+    ArgumentosPthreads2 *argumentos = dados;
+
+    for (
+        int linha = argumentos->id_thread;
+        linha < argumentos->altura;
+        linha += argumentos->num_threads
+    ) {
+        for (
+            int coluna = 0;
+            coluna < argumentos->largura;
+            coluna++
+        ) {
+            int indice = linha * argumentos->largura + coluna;
+
+            argumentos->imagem[indice] = calcular_pixel(
+                coluna,
+                linha,
+                argumentos->largura,
+                argumentos->altura,
+                argumentos->max_iteracoes
+            );
+        }
+    }
+
+    return NULL;
+}
+
+int calcular_pthreads2(
+    int *imagem,
+    int largura,
+    int altura,
+    int max_iteracoes,
+    int num_threads
+)
+{
+    pthread_t *threads;
+    ArgumentosPthreads2 *argumentos;
+    int threads_criadas = 0;
+    int ocorreu_erro = 0;
+
+    threads = malloc(
+        (size_t)num_threads * sizeof(*threads)
+    );
+
+    argumentos = malloc(
+        (size_t)num_threads * sizeof(*argumentos)
+    );
+
+    if (threads == NULL || argumentos == NULL) {
+        free(threads);
+        free(argumentos);
+        return 0;
+    }
+
+    for (int i = 0; i < num_threads; i++) {
+        argumentos[i].imagem = imagem;
+        argumentos[i].largura = largura;
+        argumentos[i].altura = altura;
+        argumentos[i].max_iteracoes = max_iteracoes;
+        argumentos[i].id_thread = i;
+        argumentos[i].num_threads = num_threads;
+
+        if (
+            pthread_create(
+                &threads[i],
+                NULL,
+                executar_ciclico_pthreads2,
                 &argumentos[i]
             ) != 0
         ) {

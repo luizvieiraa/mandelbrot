@@ -51,4 +51,12 @@ int calcular_pthreads1(
     int num_threads
 );
 
+int calcular_pthreads2(
+    int *imagem,
+    int largura,
+    int altura,
+    int max_iteracoes,
+    int num_threads
+);
+
 #endif

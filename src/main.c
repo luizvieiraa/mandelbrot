@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
         max_iteracoes
     );
 
-    if (
+        if (
         !calcular_pthreads1(
             imagem,
             largura,
@@ -153,6 +153,30 @@ int main(int argc, char *argv[])
         fprintf(
             stderr,
             "Erro: falha na execucao das threads Pthreads 1.\n"
+        );
+
+        free(imagem);
+        return EXIT_FAILURE;
+    }
+
+    normalizar_imagem(
+        imagem,
+        total_pixels,
+        max_iteracoes
+    );
+
+    if (
+        !calcular_pthreads2(
+            imagem,
+            largura,
+            altura,
+            max_iteracoes,
+            num_threads
+        )
+    ) {
+        fprintf(
+            stderr,
+            "Erro: falha na execucao das threads Pthreads 2.\n"
         );
 
         free(imagem);
