@@ -43,4 +43,12 @@ void calcular_openmp(
     int num_threads
 );
 
+int calcular_pthreads1(
+    int *imagem,
+    int largura,
+    int altura,
+    int max_iteracoes,
+    int num_threads
+);
+
 #endif

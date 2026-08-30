@@ -1,11 +1,22 @@
 #include "mandelbrot.h"
 #include <omp.h>
+#include <pthread.h>
+#include <stdlib.h>
 
 #define REAL_MINIMO (-2.0)
 #define REAL_MAXIMO 1.0
 #define IMAGINARIO_MINIMO (-1.5)
 #define IMAGINARIO_MAXIMO 1.5
 #define LIMITE_ESCAPE 4.0
+
+typedef struct {
+    int *imagem;
+    int largura;
+    int altura;
+    int max_iteracoes;
+    int linha_inicial;
+    int linha_final;
+} ArgumentosPthreads1;
 
 int calcular_iteracoes_ponto(
     double real,
@@ -146,4 +157,99 @@ void calcular_openmp(
             );
         }
     }
+}
+
+static void *executar_bloco_pthreads1(void *dados)
+{
+    ArgumentosPthreads1 *argumentos = dados;
+
+    for (
+        int linha = argumentos->linha_inicial;
+        linha < argumentos->linha_final;
+        linha++
+    ) {
+        for (
+            int coluna = 0;
+            coluna < argumentos->largura;
+            coluna++
+        ) {
+            int indice = linha * argumentos->largura + coluna;
+
+            argumentos->imagem[indice] = calcular_pixel(
+                coluna,
+                linha,
+                argumentos->largura,
+                argumentos->altura,
+                argumentos->max_iteracoes
+            );
+        }
+    }
+
+    return NULL;
+}
+
+int calcular_pthreads1(
+    int *imagem,
+    int largura,
+    int altura,
+    int max_iteracoes,
+    int num_threads
+)
+{
+    pthread_t *threads;
+    ArgumentosPthreads1 *argumentos;
+    int threads_criadas = 0;
+    int ocorreu_erro = 0;
+
+    threads = malloc(
+        (size_t)num_threads * sizeof(*threads)
+    );
+
+    argumentos = malloc(
+        (size_t)num_threads * sizeof(*argumentos)
+    );
+
+    if (threads == NULL || argumentos == NULL) {
+        free(threads);
+        free(argumentos);
+        return 0;
+    }
+
+    for (int i = 0; i < num_threads; i++) {
+        argumentos[i].imagem = imagem;
+        argumentos[i].largura = largura;
+        argumentos[i].altura = altura;
+        argumentos[i].max_iteracoes = max_iteracoes;
+
+        argumentos[i].linha_inicial =
+            (i * altura) / num_threads;
+
+        argumentos[i].linha_final =
+            ((i + 1) * altura) / num_threads;
+
+        if (
+            pthread_create(
+                &threads[i],
+                NULL,
+                executar_bloco_pthreads1,
+                &argumentos[i]
+            ) != 0
+        ) {
+            ocorreu_erro = 1;
+            break;
+        }
+
+        threads_criadas++;
+    }
+
+    for (int i = 0; i < threads_criadas; i++) {
+        if (pthread_join(threads[i], NULL) != 0) {
+            ocorreu_erro = 1;
+        }
+    }
+
+    free(threads);
+    free(argumentos);
+
+    return !ocorreu_erro;
 }
