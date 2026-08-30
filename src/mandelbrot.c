@@ -2,6 +2,7 @@
 #include <omp.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define REAL_MINIMO (-2.0)
 #define REAL_MAXIMO 1.0
@@ -350,6 +351,88 @@ int calcular_pthreads2(
 
     free(threads);
     free(argumentos);
+
+    return !ocorreu_erro;
+}
+
+int salvar_imagem(
+    const char *nome_arquivo,
+    const int *imagem,
+    int largura,
+    int altura
+)
+{
+    FILE *arquivo = fopen(nome_arquivo, "w");
+
+    if (arquivo == NULL) {
+        return 0;
+    }
+
+    for (int linha = 0; linha < altura; linha++) {
+        for (int coluna = 0; coluna < largura; coluna++) {
+            size_t indice =
+                (size_t)linha * (size_t)largura
+                + (size_t)coluna;
+
+            if (fprintf(arquivo, "%d", imagem[indice]) < 0) {
+                fclose(arquivo);
+                return 0;
+            }
+
+            if (coluna < largura - 1) {
+                if (fputc(' ', arquivo) == EOF) {
+                    fclose(arquivo);
+                    return 0;
+                }
+            }
+        }
+
+        if (fputc('\n', arquivo) == EOF) {
+            fclose(arquivo);
+            return 0;
+        }
+    }
+
+    if (fclose(arquivo) != 0) {
+        return 0;
+    }
+
+    return 1;
+}
+
+int salvar_tempos(
+    double serial,
+    double openmp,
+    double pthreads1,
+    double pthreads2
+)
+{
+    FILE *arquivo = fopen("times.txt", "w");
+    int ocorreu_erro = 0;
+
+    if (arquivo == NULL) {
+        return 0;
+    }
+
+    if (
+        fprintf(
+            arquivo,
+            "Serial: %.9f segundos\n"
+            "OpenMP: %.9f segundos\n"
+            "Pthreads1: %.9f segundos\n"
+            "Pthreads2: %.9f segundos\n",
+            serial,
+            openmp,
+            pthreads1,
+            pthreads2
+        ) < 0
+    ) {
+        ocorreu_erro = 1;
+    }
+
+    if (fclose(arquivo) != 0) {
+        ocorreu_erro = 1;
+    }
 
     return !ocorreu_erro;
 }

@@ -41,7 +41,7 @@ void calcular_openmp(
     int altura,
     int max_iteracoes,
     int num_threads
-);
+); 
 
 int calcular_pthreads1(
     int *imagem,
@@ -57,6 +57,20 @@ int calcular_pthreads2(
     int altura,
     int max_iteracoes,
     int num_threads
+);
+
+int salvar_imagem(
+    const char *nome_arquivo,
+    const int *imagem,
+    int largura,
+    int altura
+);
+
+int salvar_tempos(
+    double serial,
+    double openmp,
+    double pthreads1,
+    double pthreads2
 );
 
 #endif

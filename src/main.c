@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <limits.h>
+#include <omp.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,6 +40,12 @@ int main(int argc, char *argv[])
     size_t total_pixels;
     int *imagem;
 
+    double inicio;
+    double tempo_serial;
+    double tempo_openmp;
+    double tempo_pthreads1;
+    double tempo_pthreads2;
+
     if (argc != 5) {
         fprintf(
             stderr,
@@ -50,18 +57,12 @@ int main(int argc, char *argv[])
     }
 
     if (!converter_inteiro_positivo(argv[1], &largura)) {
-        fprintf(
-            stderr,
-            "Erro: largura deve ser um inteiro positivo.\n"
-        );
+        fprintf(stderr, "Erro: largura deve ser um inteiro positivo.\n");
         return EXIT_FAILURE;
     }
 
     if (!converter_inteiro_positivo(argv[2], &altura)) {
-        fprintf(
-            stderr,
-            "Erro: altura deve ser um inteiro positivo.\n"
-        );
+        fprintf(stderr, "Erro: altura deve ser um inteiro positivo.\n");
         return EXIT_FAILURE;
     }
 
@@ -114,6 +115,10 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    /* Versão serial */
+
+    inicio = omp_get_wtime();
+
     calcular_serial(
         imagem,
         largura,
@@ -121,11 +126,30 @@ int main(int argc, char *argv[])
         max_iteracoes
     );
 
+    tempo_serial = omp_get_wtime() - inicio;
+
     normalizar_imagem(
         imagem,
         total_pixels,
         max_iteracoes
     );
+
+    if (
+        !salvar_imagem(
+            "mandelbrot_lhcv_serial.pgm",
+            imagem,
+            largura,
+            altura
+        )
+    ) {
+        fprintf(stderr, "Erro: falha ao salvar imagem serial.\n");
+        free(imagem);
+        return EXIT_FAILURE;
+    }
+
+    /* Versão OpenMP */
+
+    inicio = omp_get_wtime();
 
     calcular_openmp(
         imagem,
@@ -135,13 +159,32 @@ int main(int argc, char *argv[])
         num_threads
     );
 
+    tempo_openmp = omp_get_wtime() - inicio;
+
     normalizar_imagem(
         imagem,
         total_pixels,
         max_iteracoes
     );
 
-        if (
+    if (
+        !salvar_imagem(
+            "mandelbrot_lhcv_openmp.pgm",
+            imagem,
+            largura,
+            altura
+        )
+    ) {
+        fprintf(stderr, "Erro: falha ao salvar imagem OpenMP.\n");
+        free(imagem);
+        return EXIT_FAILURE;
+    }
+
+    /* Versão Pthreads 1 */
+
+    inicio = omp_get_wtime();
+
+    if (
         !calcular_pthreads1(
             imagem,
             largura,
@@ -154,16 +197,34 @@ int main(int argc, char *argv[])
             stderr,
             "Erro: falha na execucao das threads Pthreads 1.\n"
         );
-
         free(imagem);
         return EXIT_FAILURE;
     }
+
+    tempo_pthreads1 = omp_get_wtime() - inicio;
 
     normalizar_imagem(
         imagem,
         total_pixels,
         max_iteracoes
     );
+
+    if (
+        !salvar_imagem(
+            "mandelbrot_lhcv_pthreads1.pgm",
+            imagem,
+            largura,
+            altura
+        )
+    ) {
+        fprintf(stderr, "Erro: falha ao salvar imagem Pthreads 1.\n");
+        free(imagem);
+        return EXIT_FAILURE;
+    }
+
+    /* Versão Pthreads 2 */
+
+    inicio = omp_get_wtime();
 
     if (
         !calcular_pthreads2(
@@ -178,16 +239,43 @@ int main(int argc, char *argv[])
             stderr,
             "Erro: falha na execucao das threads Pthreads 2.\n"
         );
-
         free(imagem);
         return EXIT_FAILURE;
     }
+
+    tempo_pthreads2 = omp_get_wtime() - inicio;
 
     normalizar_imagem(
         imagem,
         total_pixels,
         max_iteracoes
     );
+
+    if (
+        !salvar_imagem(
+            "mandelbrot_lhcv_pthreads2.pgm",
+            imagem,
+            largura,
+            altura
+        )
+    ) {
+        fprintf(stderr, "Erro: falha ao salvar imagem Pthreads 2.\n");
+        free(imagem);
+        return EXIT_FAILURE;
+    }
+
+    if (
+        !salvar_tempos(
+            tempo_serial,
+            tempo_openmp,
+            tempo_pthreads1,
+            tempo_pthreads2
+        )
+    ) {
+        fprintf(stderr, "Erro: falha ao salvar times.txt.\n");
+        free(imagem);
+        return EXIT_FAILURE;
+    }
 
     free(imagem);
     return EXIT_SUCCESS;
