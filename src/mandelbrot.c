@@ -1,6 +1,7 @@
 #include "mandelbrot.h"
 #include <omp.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -96,7 +97,9 @@ void calcular_serial(
 {
     for (int linha = 0; linha < altura; linha++) {
         for (int coluna = 0; coluna < largura; coluna++) {
-            int indice = linha * largura + coluna;
+            size_t indice =
+                (size_t)linha * (size_t)largura
+                + (size_t)coluna;
 
             imagem[indice] = calcular_pixel(
                 coluna,
@@ -150,13 +153,19 @@ void calcular_openmp(
     int num_threads
 )
 {
+    int threads_efetivas = num_threads < altura
+        ? num_threads
+        : altura;
+
     #pragma omp parallel for \
         schedule(static) \
-        num_threads(num_threads)
+        num_threads(threads_efetivas)
 
     for (int linha = 0; linha < altura; linha++) {
         for (int coluna = 0; coluna < largura; coluna++) {
-            int indice = linha * largura + coluna;
+            size_t indice =
+                (size_t)linha * (size_t)largura
+                + (size_t)coluna;
 
             imagem[indice] = calcular_pixel(
                 coluna,
@@ -183,7 +192,9 @@ static void *executar_bloco_pthreads1(void *dados)
             coluna < argumentos->largura;
             coluna++
         ) {
-            int indice = linha * argumentos->largura + coluna;
+            size_t indice =
+                (size_t)linha * (size_t)argumentos->largura
+                + (size_t)coluna;
 
             argumentos->imagem[indice] = calcular_pixel(
                 coluna,
@@ -210,13 +221,23 @@ int calcular_pthreads1(
     ArgumentosPthreads1 *argumentos;
     int threads_criadas = 0;
     int ocorreu_erro = 0;
+    int threads_efetivas = num_threads < altura ? num_threads : altura;
+    int linhas_por_thread = altura / threads_efetivas;
+    int linhas_restantes = altura % threads_efetivas;
+    int proxima_linha = 0;
+
+    if ((size_t)threads_efetivas > SIZE_MAX / sizeof(*threads)
+        || (size_t)threads_efetivas > SIZE_MAX / sizeof(*argumentos)) {
+        fprintf(stderr, "Erro: vetores de Pthreads 1 excedem o limite.\n");
+        return 0;
+    }
 
     threads = malloc(
-        (size_t)num_threads * sizeof(*threads)
+        (size_t)threads_efetivas * sizeof(*threads)
     );
 
     argumentos = malloc(
-        (size_t)num_threads * sizeof(*argumentos)
+        (size_t)threads_efetivas * sizeof(*argumentos)
     );
 
     if (threads == NULL || argumentos == NULL) {
@@ -225,17 +246,18 @@ int calcular_pthreads1(
         return 0;
     }
 
-    for (int i = 0; i < num_threads; i++) {
+    for (int i = 0; i < threads_efetivas; i++) {
+        int quantidade_linhas = linhas_por_thread
+            + (i < linhas_restantes ? 1 : 0);
+
         argumentos[i].imagem = imagem;
         argumentos[i].largura = largura;
         argumentos[i].altura = altura;
         argumentos[i].max_iteracoes = max_iteracoes;
 
-        argumentos[i].linha_inicial =
-            (i * altura) / num_threads;
-
-        argumentos[i].linha_final =
-            ((i + 1) * altura) / num_threads;
+        argumentos[i].linha_inicial = proxima_linha;
+        argumentos[i].linha_final = proxima_linha + quantidade_linhas;
+        proxima_linha = argumentos[i].linha_final;
 
         if (
             pthread_create(
@@ -278,7 +300,9 @@ static void *executar_ciclico_pthreads2(void *dados)
             coluna < argumentos->largura;
             coluna++
         ) {
-            int indice = linha * argumentos->largura + coluna;
+            size_t indice =
+                (size_t)linha * (size_t)argumentos->largura
+                + (size_t)coluna;
 
             argumentos->imagem[indice] = calcular_pixel(
                 coluna,
@@ -305,13 +329,20 @@ int calcular_pthreads2(
     ArgumentosPthreads2 *argumentos;
     int threads_criadas = 0;
     int ocorreu_erro = 0;
+    int threads_efetivas = num_threads < altura ? num_threads : altura;
+
+    if ((size_t)threads_efetivas > SIZE_MAX / sizeof(*threads)
+        || (size_t)threads_efetivas > SIZE_MAX / sizeof(*argumentos)) {
+        fprintf(stderr, "Erro: vetores de Pthreads 2 excedem o limite.\n");
+        return 0;
+    }
 
     threads = malloc(
-        (size_t)num_threads * sizeof(*threads)
+        (size_t)threads_efetivas * sizeof(*threads)
     );
 
     argumentos = malloc(
-        (size_t)num_threads * sizeof(*argumentos)
+        (size_t)threads_efetivas * sizeof(*argumentos)
     );
 
     if (threads == NULL || argumentos == NULL) {
@@ -320,13 +351,13 @@ int calcular_pthreads2(
         return 0;
     }
 
-    for (int i = 0; i < num_threads; i++) {
+    for (int i = 0; i < threads_efetivas; i++) {
         argumentos[i].imagem = imagem;
         argumentos[i].largura = largura;
         argumentos[i].altura = altura;
         argumentos[i].max_iteracoes = max_iteracoes;
         argumentos[i].id_thread = i;
-        argumentos[i].num_threads = num_threads;
+        argumentos[i].num_threads = threads_efetivas;
 
         if (
             pthread_create(
