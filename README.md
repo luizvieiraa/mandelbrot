@@ -144,6 +144,3 @@ make clean
 
 **Luiz Vieira**  
 Ciência da Computação — CESAR School  
-Login acadêmico: `lhcv`
-
-Repositório: [github.com/luizvieiraa/mandelbrot](https://github.com/luizvieiraa/mandelbrot)

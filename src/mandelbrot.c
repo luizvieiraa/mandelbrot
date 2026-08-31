@@ -448,10 +448,10 @@ int salvar_tempos(
     if (
         fprintf(
             arquivo,
-            "Serial: %.9f segundos\n"
-            "OpenMP: %.9f segundos\n"
-            "Pthreads1: %.9f segundos\n"
-            "Pthreads2: %.9f segundos\n",
+            "Serial: %.6fs\n"
+            "OpenMP: %.6fs\n"
+            "Pthreads1: %.6fs\n"
+            "Pthreads2: %.6fs\n",
             serial,
             openmp,
             pthreads1,
